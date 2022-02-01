@@ -1,0 +1,49 @@
+version: '3'
+services :
+  web :
+    image : ocsinventory/ocsinventory-docker-image:latest
+    container_name : ocsinventory-server
+    environment :
+      OCS_DBNAME : ocsweb
+      OCS_DBSERVER_READ : dbsrv
+      OCS_DBSERVER_WRITE : dbsrv
+      OCS_DBUSER : "ocsUSER"
+      OCS_DBPASS : ocsD123
+    volumes :
+      - ocsdownload:/usr/share/ocsinventory-reports/ocsreports/download/
+      - ocsreports:/usr/share/ocsinventory-reports/ocsreports/
+      - ocssrv:/etc/ocsinventory-reports/
+      - ocslib:/var/lib/ocsinventory-reports/
+      - ocshttpdconf:/etc/httpd/conf.d/
+    links :
+      - db
+    ports :
+      - 80:80
+      - 443:443
+
+  db :
+    image : mysql:5.7
+    container_name : dbsrv
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD : "XXXXXXXXXXXXXXXXXX"
+      MYSQL_USER : ocsUSER
+      MYSQL_PASSWORD : ocsD123
+      MYSQL_DATABASE : ocsweb
+    volumes :
+      - ./sql/:/docker-entrypoint-initdb.d/
+      - ocsdata:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+volumes:
+  ocsdata:
+    driver: local
+  ocssrv:
+    driver: local
+  ocslib:
+    driver: local
+  ocsdownload:
+    driver: local
+  ocshttpdconf:
+    driver: local
+  ocsreports:
+    driver: local
