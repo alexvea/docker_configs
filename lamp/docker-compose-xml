@@ -1,0 +1,68 @@
+version: "3.7"
+
+services:
+  httpd:
+    image: apache-fcgi:latest
+    container_name: '${ENV_NAME}-httpd'
+    restart: 'always'
+    expose:
+      - 80
+      - 443
+    volumes: 
+      - ${ENVS_DIR}/${ENV_NAME}/www:/var/www/html
+      - ${ENVS_DIR}/${ENV_NAME}/conf/apache/site:/etc/apache2/sites-available:ro
+      - ${ENVS_DIR}/${ENV_NAME}/conf/apache/conf:/etc/apache2/conf-available:ro
+      - ${ENVS_DIR}/${ENV_NAME}/logs/apache:/var/log/apache2
+    labels:
+      - "traefik.enable=true"
+      - "traefik.hostname=${ENV_NAME}"      
+    environment:
+      MYSQL_USER: ${ENV_NAME}_user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}     
+    networks:
+     - internal
+
+  phpfpm:
+    image: '${PHPFPM_IMAGE_NAME}'
+    container_name: '${ENV_NAME}-phpfpm'
+    restart: 'always'
+    expose:
+      - 9000
+    volumes:
+      -  ${ENVS_DIR}/${ENV_NAME}/www:/var/www/html          
+      -  ${ENVS_DIR}/${ENV_NAME}/conf/php/php-fpm/:/usr/local/etc/php-fpm.d/custom/:ro
+      -  ${ENVS_DIR}/${ENV_NAME}/logs/phpfpm:/usr/local/var/log/
+    labels:
+      - "traefik.enable=false"
+    environment:
+      MYSQL_USER: ${ENV_NAME}_user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}   
+    networks:
+     - internal
+     
+  databasesv:
+    image: '${DB_IMAGE_NAME}'
+    container_name: '${ENV_NAME}-databasesv'
+    restart: 'always'
+    expose:
+      - 3306
+    volumes: 
+       - ${ENVS_DIR}/${ENV_NAME}/conf/db/:/etc/mysql/conf.d/:ro
+       - ${ENVS_DIR}/${ENV_NAME}/conf/db/custom.cnf:/etc/mysql/conf.d/custom.cnf:ro
+
+       - ${ENVS_DIR}/${ENV_NAME}/logs/db:/var/log/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${ENV_NAME}_db
+      MYSQL_USER: ${ENV_NAME}_user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    labels:
+      - "traefik.enable=false"
+    networks:
+     - internal
+     
+networks:
+
+  internal:
+    driver: bridge
+    name: "${ENV_NAME}_internal"
