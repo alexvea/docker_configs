@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+
+  traefik:
+    image: "traefik:v2.5.6"
+    container_name: "traefik"
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/configuration/"
+      - "--providers.docker.defaultrule=Host(`{{ index .Labels \"traefik.hostname\" }}`)"
+      - "--providers.file.watch=true"
+      - "--entrypoints.websecure.address=:8443"
+      - "--entrypoints.websecure.http.tls=true"
+    ports:
+      - "8888:80"
+      - "8443:443"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/home/docker/traefik/configuration/:/configuration/"
+      - "/root/ssl/:/certs/:ro"
+      
+  waf:
+    image: owasp/modsecurity-crs:apache
+    container_name: "waf"
+    environment:
+      - MODSEC_RULE_ENGINE=On
+      - PARANOIA=1
+      - ANOMALY_INBOUND=10
+      - ANOMALY_OUTBOUND=5
+      - BACKEND=https://traefik:8443
+      - PROXY=1
+    volumes:
+      - "/root/waf/rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf:/etc/modsecurity.d/owasp-crs/rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf"
+      - "/root/waf/rules/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf:/etc/modsecurity.d/owasp-crs/rules/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf"
+    ports:
+    - "80:80"
+    - "443:443"
