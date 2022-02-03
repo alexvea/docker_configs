@@ -1,0 +1,21 @@
+#[root@web-hq-001 docker]# cat /etc/systemd/system/docker_lamp_events.service 
+[Unit]
+Description=Docker LAMP Monitor Service
+BindsTo=docker.service
+After=docker.service
+
+[Service]
+Type=forking
+PIDFile=/var/run/docker_lamp_events.pid
+
+ExecStart=/usr/local/scripts/docker_lamp_events.sh start
+ExecStop=/usr/local/scripts/docker_lamp_events.sh stop
+ExecRestart=/usr/local/scripts/docker_lamp_events.sh restart
+
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=docker_lamp_events 
+
+[Install]
+WantedBy=multi-user.target
+
